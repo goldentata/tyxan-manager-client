@@ -12,9 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 
-define('TYXAN_MANAGER_SECRET', '4AEF763DA69D4B5666E8F42A4755E'); 
-define('TYXAN_MANAGER_URL', 'https://tyxan.com/tyxan-manager/'); 
-
 
 require_once('modules/admin_notifications.php');
 require_once('modules/auto_updates_disabled.php');
@@ -53,8 +50,8 @@ function tyxan_manager_ping() {
 
 // handler for downloading a new version of the plugin
 function tyxan_manager_update_plugin($request) {
-    $apiKey = $request->get_param('api_key');
-    if ($apiKey!=TYXAN_MANAGER_SECRET) {
+   $manager_secret = get_option('tyxan_manager_secret', '');
+    if ($request->get_param('api_key') != $manager_secret) {
         return new WP_Error('invalid_api_key', 'Invalid API key', ['status' => 403]);
     }
 
@@ -86,7 +83,8 @@ function tyxan_manager_update_plugin($request) {
 // one click sign in
 function tyxan_manager_login_link($request) {
     $apiKey = $request->get_param('api_key');
-    if ($apiKey != TYXAN_MANAGER_SECRET) {
+    $manager_secret = get_option('tyxan_manager_secret', '');
+    if ($apiKey != $manager_secret) {
         return new WP_Error('invalid_api_key', 'Invalid API key', ['status' => 403]);
     }
 
@@ -137,15 +135,17 @@ add_action('init', function() {
 // register the site in manager on plugin activation
 register_activation_hook(__FILE__, 'tyxan_manager_on_activation');
 function tyxan_manager_on_activation() {
-    $url = TYXAN_MANAGER_URL . '/register.php';
+    $manager_url = rtrim(get_option('tyxan_manager_url', ''), '/');
 
+   $manager_secret = get_option('tyxan_manager_secret', '');
+    
     $body = [
         'site_url'  => get_site_url(),
         'site_name' => get_bloginfo('name'),
-        'api_key'   => TYXAN_MANAGER_SECRET, 
+        'api_key'   => $manager_secret, 
     ];
 
-    $response = wp_remote_post($url, [
+    $response = wp_remote_post($manager_url . '/register.php', [
         'body'      => $body,
         'timeout'   => 20,
         'sslverify' => true,
@@ -159,14 +159,16 @@ function tyxan_manager_on_activation() {
 // remove website from our manager on plugin deactivation
 register_deactivation_hook(__FILE__, 'tyxan_manager_on_deactivation');
 function tyxan_manager_on_deactivation() {
-    $url = TYXAN_MANAGER_URL . '/unregister.php';
+    $manager_url = rtrim(get_option('tyxan_manager_url', ''), '/');
+    
+   $manager_secret = get_option('tyxan_manager_secret', '');
 
     $body = [
         'site_url' => get_site_url(),
-        'api_key'  => TYXAN_MANAGER_SECRET,
+        'api_key'  => $manager_secret,
     ];
 
-    $response = wp_remote_post($url, [
+    $response = wp_remote_post($manager_url . '/unregister.php', [
         'body'      => $body,
         'timeout'   => 20,
         'sslverify' => true,
@@ -178,15 +180,16 @@ function tyxan_manager_on_deactivation() {
 }
 
 function tyxan_manager_register_site() {
-    $url = rtrim(TYXAN_MANAGER_URL, '/') . '/register.php';
+    $manager_url = rtrim(get_option('tyxan_manager_url', ''), '/');
 
+   $manager_secret = get_option('tyxan_manager_secret', '');
     $body = [
         'site_url'  => get_site_url(),
         'site_name' => get_bloginfo('name'),
-        'api_key'   => TYXAN_MANAGER_SECRET,
+        'api_key'   => $manager_secret,
     ];
 
-    $response = wp_remote_post($url, [
+    $response = wp_remote_post($manager_url . '/register.php', [
         'body'      => $body,
         'timeout'   => 20,
         'sslverify' => true,
@@ -257,6 +260,13 @@ function tyxan_manager_handle_reconnect() {
     wp_redirect(admin_url('admin.php?page=tyxan-manager'));
     exit;
 }
+
+add_action('admin_init', 'tyxan_manager_register_settings');
+function tyxan_manager_register_settings() {
+    register_setting('tyxan_manager_settings_group', 'tyxan_manager_secret');
+    register_setting('tyxan_manager_settings_group', 'tyxan_manager_url');
+}
+
 
 // heartbeat experiments - buggy - periodically re-register the site
 /*
