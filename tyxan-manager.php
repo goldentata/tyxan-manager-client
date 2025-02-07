@@ -45,7 +45,17 @@ add_action('rest_api_init', function() {
 
 // response for pings
 function tyxan_manager_ping() {
-    return ['status' => 'ok', 'message' => 'Long live the empire!'];
+    if ( ! function_exists('get_file_data') ) {
+        require_once( ABSPATH . 'wp-admin/includes/file.php' );
+    }
+   $plugin_data = get_file_data(__FILE__, array('Version' => 'Version'), 'plugin');
+    $version     = ! empty($plugin_data['Version']) ? $plugin_data['Version'] : 'unknown';
+
+    return [
+        'status'  => 'ok',
+        'message' => 'Long live the empire!',
+        'version' => $version, 
+    ];
 }
 
 // handler for downloading a new version of the plugin
