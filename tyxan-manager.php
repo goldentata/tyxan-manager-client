@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Tyxan Manager
  * Description: 
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Tyxan Team
  * Text Domain: wp-remote-manager
  */
@@ -17,6 +17,9 @@ define('TYXAN_MANAGER_URL', 'https://tyxan.com/tyxan-manager/');
 
 
 require_once('modules/admin_notifications.php');
+require_once('modules/auto_updates_disabled.php');
+
+
 
 // wp rest endpoints
 add_action('rest_api_init', function() {
